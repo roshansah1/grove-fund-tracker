@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { collections, initialDonations, managers, members, withdrawals } from './data'
+import memberPhotoCatalog from './memberPhotos.json'
 import './App.css'
 
 const money = (n) =>
@@ -382,6 +383,13 @@ function App() {
           <div className="top-donors">
             {contributorRanking.slice(0, 3).map((contributor, index) => {
               const photo = memberPhotos[contributor.name]
+                ? {
+                    src: memberPhotos[contributor.name],
+                    alt: `${contributor.name} profile`,
+                    position: '50% 50%',
+                    zoom: 1,
+                  }
+                : memberPhotoCatalog[contributor.name]
               return (
                 <article className={`top-donor-card ${index === 0 ? 'featured' : ''}`} key={contributor.name}>
                   <div className="top-donor-rank">
@@ -389,7 +397,13 @@ function App() {
                   </div>
                   <div className="top-donor-profile">
                     {photo ? (
-                      <img src={photo} alt={`${contributor.name} profile`} />
+                      <div className="top-donor-photo">
+                        <img
+                          src={photo.src}
+                          alt={photo.alt}
+                          style={{ '--photo-position': photo.position, '--photo-zoom': photo.zoom }}
+                        />
+                      </div>
                     ) : (
                       <span className="top-donor-fallback">{initials(contributor.name)}</span>
                     )}
@@ -406,16 +420,32 @@ function App() {
             })}
           </div>
           <div className="member-grid">
-            {filteredMembers.map((member) => (
-              <article className="member-card" key={member.name}>
+            {filteredMembers.map((member) => {
+              const photo = memberPhotos[member.name]
+                ? {
+                    src: memberPhotos[member.name],
+                    alt: `${member.name} profile`,
+                    position: '50% 50%',
+                    zoom: 1,
+                  }
+                : memberPhotoCatalog[member.name]
+
+              return (
+                <article className="member-card" key={member.name}>
                 <div className="member-photo">
-                  {memberPhotos[member.name] ? (
-                    <img src={memberPhotos[member.name]} alt={`${member.name} profile`} />
-                  ) : (
-                    <span className="member-photo-fallback">{initials(member.name)}</span>
-                  )}
+                  <div className="member-photo-frame">
+                    {photo ? (
+                      <img
+                        src={photo.src}
+                        alt={photo.alt}
+                        style={{ '--photo-position': photo.position, '--photo-zoom': photo.zoom }}
+                      />
+                    ) : (
+                      <span className="member-photo-fallback">{initials(member.name)}</span>
+                    )}
+                  </div>
                   <label className="photo-upload">
-                    {memberPhotos[member.name] ? 'Change photo' : 'Add photo'}
+                    {photo ? 'Change photo' : 'Add photo'}
                     <input
                       type="file"
                       accept="image/*"
@@ -437,8 +467,9 @@ function App() {
                     <strong>{money(member.weeklyRate)}</strong>
                   </div>
                 </div>
-              </article>
-            ))}
+                </article>
+              )
+            })}
           </div>
           <div className="collection-total">
             <span>Total collected this week</span>

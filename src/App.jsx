@@ -244,7 +244,7 @@ function App() {
         </div>
         <div className="managers">
           {managers.map((name) => (
-            <div className="manager-chip" key={name}>
+            <div className="manager-chip" key={name.name}>
               <span className="avatar">{initials(name.name)}</span>
               <span>
                 <small>{name.role}</small>

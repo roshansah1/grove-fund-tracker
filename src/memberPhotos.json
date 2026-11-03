@@ -1,4 +1,22 @@
 {
+  "Vihaan": {
+    "src": "/member-photos/vihaan.png",
+    "alt": "Vihaan wearing sunglasses at sunset",
+    "position": "50% 30%",
+    "zoom": 1
+  },
+  "Jenna": {
+    "src": "/member-photos/jenna.png",
+    "alt": "Jenna with purple hair and headphones",
+    "position": "50% 35%",
+    "zoom": 1
+  },
+  "Lance": {
+    "src": "/member-photos/lance.png",
+    "alt": "Lance wearing sunglasses and a black cap",
+    "position": "50% 35%",
+    "zoom": 1
+  },
   "Steven Burgershot": {
     "src": "/member-photos/steven-burgershot.png",
     "alt": "Steven seated in front of a car",

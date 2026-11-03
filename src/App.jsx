@@ -1,5 +1,14 @@
 import { useEffect, useMemo, useState } from 'react'
-import { collections, initialDonations, managers, members, withdrawals } from './data'
+import {
+  activeCollectionDate,
+  activeCollectionWeekLabel,
+  collections,
+  initialDonations,
+  managers,
+  members,
+  withdrawals,
+} from './data'
+import hcrCollections from './hcrCollections.json'
 import memberPhotoCatalog from './memberPhotos.json'
 import './App.css'
 
@@ -9,6 +18,17 @@ const money = (n) =>
     currency: 'USD',
     maximumFractionDigits: 0,
   }).format(n)
+
+const moneyExact = (n) =>
+  new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(n)
+
+const hcrAmount = (n) =>
+  new Intl.NumberFormat('en-US', { maximumFractionDigits: 6 }).format(n)
 
 const prettyDate = (iso) =>
   new Date(`${iso}T00:00:00`).toLocaleDateString('en-US', {
@@ -40,13 +60,7 @@ function App() {
       return initialDonations
     }
   })
-  const [memberPhotos, setMemberPhotos] = useState(() => {
-    try {
-      return JSON.parse(localStorage.getItem('south-side-ballas-member-photos') || '{}')
-    } catch {
-      return {}
-    }
-  })
+  const [hcrWeek, setHcrWeek] = useState(activeCollectionDate)
   const [donationForm, setDonationForm] = useState({
     donor: '',
     amount: '',
@@ -62,14 +76,6 @@ function App() {
     }
   }, [donations])
 
-  useEffect(() => {
-    try {
-      localStorage.setItem('south-side-ballas-member-photos', JSON.stringify(memberPhotos))
-    } catch {
-      // Keep the current session usable if browser storage is unavailable.
-    }
-  }, [memberPhotos])
-
   const totals = useMemo(() => {
     const totalMembers = members.length
     const totalContributions = members.reduce((s, m) => s + m.amount, 0)
@@ -81,10 +87,12 @@ function App() {
     const totalWithdrawals = withdrawals.reduce((s, w) => s + w.amount, 0)
     const available = totalFund - totalReturned - totalWithdrawals
     const logged = collections.reduce((s, c) => s + c.amount, 0)
-    const loggedNames = new Set(collections.map((c) => c.member.toLowerCase()))
-    const missingLogs = members.filter((m) => !loggedNames.has(m.name.toLowerCase()))
+    const collectionDay = new Date(`${activeCollectionDate}T00:00:00`).toLocaleDateString('en-US', {
+      weekday: 'long',
+    })
+    const missingLogs = members.filter((m) => m.day === collectionDay && !m.paid)
     const byCollector = collections.reduce((acc, c) => {
-      acc[c.by] = (acc[c.by] || 0) + c.amount
+      if (c.by) acc[c.by] = (acc[c.by] || 0) + c.amount
       return acc
     }, {})
     const monday = members.filter((m) => m.day === 'Monday')
@@ -126,6 +134,11 @@ function App() {
     )
   }, [query])
 
+  const sortedCollections = useMemo(
+    () => [...filteredCollections].sort((a, b) => b.date.localeCompare(a.date)),
+    [filteredCollections],
+  )
+
   const filteredWithdrawals = useMemo(() => {
     const q = query.trim().toLowerCase()
     return withdrawals.filter((w) => !q || w.reason.toLowerCase().includes(q))
@@ -142,7 +155,7 @@ function App() {
     const byContributor = members.reduce((acc, member) => {
       acc[member.name.toLowerCase()] = {
         name: member.name,
-        dues: member.paid ? member.amount : 0,
+        dues: member.amount,
         donations: 0,
       }
       return acc
@@ -191,39 +204,33 @@ function App() {
     setDonationForm((current) => ({ ...current, donor: '', amount: '' }))
   }
 
-  const addMemberPhoto = async (memberName, event) => {
-    const file = event.target.files?.[0]
-    if (!file?.type.startsWith('image/')) return
-
-    try {
-      const image = await createImageBitmap(file)
-      const canvas = document.createElement('canvas')
-      canvas.width = 256
-      canvas.height = 256
-      const context = canvas.getContext('2d')
-      if (!context) return
-
-      const scale = Math.max(256 / image.width, 256 / image.height)
-      const width = image.width * scale
-      const height = image.height * scale
-      context.drawImage(image, (256 - width) / 2, (256 - height) / 2, width, height)
-      image.close()
-
-      const photo = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.8))
-      if (!photo) return
-      const reader = new FileReader()
-      reader.onload = () => {
-        if (typeof reader.result === 'string') {
-          setMemberPhotos((current) => ({ ...current, [memberName]: reader.result }))
-        }
-      }
-      reader.readAsDataURL(photo)
-    } catch {
-      event.target.value = ''
-    }
-  }
-
   const collectorMax = Math.max(...Object.values(totals.byCollector), 1)
+  const currentWeekCollected = collections
+    .filter(
+      (collection) =>
+        collection.date === activeCollectionDate &&
+        filteredMembers.some((member) => member.name === collection.member),
+    )
+    .reduce((sum, collection) => sum + collection.amount, 0)
+  const currentHcrCollections = hcrCollections.filter(
+    (collection) =>
+      collection.week === hcrWeek &&
+      (!query.trim() ||
+        (collection.race || '').toLowerCase().includes(query.trim().toLowerCase()) ||
+        (collection.collector || '').toLowerCase().includes(query.trim().toLowerCase())),
+  )
+  const currentHcrTotal = currentHcrCollections.reduce((sum, collection) => sum + collection.amount, 0)
+  const currentHcrValue = currentHcrCollections.reduce(
+    (sum, collection) =>
+      sum +
+      (Number.isFinite(collection.unitValue)
+        ? collection.amount * collection.unitValue
+        : 0),
+    0,
+  )
+  const currentHcrPricedCount = currentHcrCollections.filter(
+    (collection) => Number.isFinite(collection.unitValue),
+  ).length
 
   return (
     <div className="page">
@@ -232,14 +239,12 @@ function App() {
 
       <header className="top">
         <div className="brand">
-          <div className="crest" aria-hidden>
-            B
-          </div>
+          <img className="crest" src={`${import.meta.env.BASE_URL}ballas-logo.png`} alt="Ballas logo" />
           <div>
             <p className="eyebrow">HydraSync · Fund Tracker</p>
             <h1>South Side Ballas</h1>
             <p className="managed">
-              Group leader and account owner <strong>Lance</strong> · Fund manager <strong>Roshan</strong>
+              Group leader and account owner <strong>Lance</strong> · Fund manager <strong>Steven</strong>
             </p>
           </div>
         </div>
@@ -261,6 +266,7 @@ function App() {
           ['overview', 'Overview'],
           ['members', 'Members'],
           ['collections', 'Collection Log'],
+          ['hcr', 'HCR Collection'],
           ['donations', 'Donations'],
           ['withdrawals', 'Withdrawals'],
         ].map(([id, label]) => (
@@ -276,7 +282,7 @@ function App() {
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search members, collectors, reasons…"
+            placeholder="Search members, collectors, races, reasons…"
           />
         </div>
       </nav>
@@ -285,8 +291,8 @@ function App() {
         <section className="panel">
           <div className="kpis">
             <Kpi label="Total Members" value={String(totals.totalMembers)} hint="Active Grove contributors" />
-            <Kpi label="Paid Members" value={`${totals.paidMembers}/${totals.totalMembers}`} hint="Marked paid in tracker" />
-            <Kpi label="Weekly Contributions" value={money(totals.totalContributions)} hint="Member dues collected" />
+            <Kpi label="Paid Members" value={`${totals.paidMembers}/${totals.totalMembers}`} hint={activeCollectionWeekLabel} />
+            <Kpi label="Member Contributions" value={money(totals.totalContributions)} hint="Cumulative dues recorded" />
             <Kpi label="Donations" value={money(totals.totalDonations)} hint="One-off contributions" />
             <Kpi label="Total Fund" value={money(totals.totalFund)} hint="Dues + donations" accent />
             <Kpi label="Total Returned" value={money(totals.totalReturned)} hint="Paid back to members" />
@@ -308,7 +314,7 @@ function App() {
                 <Bar label="Available cash" value={totals.available} max={totals.totalFund} tone="mint" />
               </div>
               <p className="note">
-                Cycle started 26 Oct 2026. All listed members are marked paid. No amounts have been returned yet.
+                Cycle started Oct 26, 2026. Week 2 collections are in progress. No amounts have been returned yet.
               </p>
             </article>
 
@@ -325,9 +331,8 @@ function App() {
               ))}
               {totals.missingLogs.length > 0 && (
                 <div className="alert">
-                  <strong>Not yet on the collection log:</strong>{' '}
-                  {totals.missingLogs.map((m) => `${m.name} (${money(m.amount)})`).join(', ')}
-                  . Member contributions total {money(totals.totalContributions)}; logged collections are {money(totals.logged)}.
+                  <strong>Still outstanding for Monday:</strong>{' '}
+                  {totals.missingLogs.map((m) => `${m.name} (${money(m.weeklyRate)})`).join(', ')}.
                 </div>
               )}
             </article>
@@ -374,7 +379,7 @@ function App() {
               <option>Monday</option>
               <option>Tuesday</option>
             </select>
-            <span className="count">{filteredMembers.length} members · Week of Oct 26, 2026</span>
+            <span className="count">{filteredMembers.length} members · {activeCollectionWeekLabel}</span>
           </div>
           <div className="top-donor-heading">
             <h2>Top Contributors</h2>
@@ -382,14 +387,7 @@ function App() {
           </div>
           <div className="top-donors">
             {contributorRanking.slice(0, 3).map((contributor, index) => {
-              const photo = memberPhotos[contributor.name]
-                ? {
-                    src: memberPhotos[contributor.name],
-                    alt: `${contributor.name} profile`,
-                    position: '50% 50%',
-                    zoom: 1,
-                  }
-                : memberPhotoCatalog[contributor.name]
+              const photo = memberPhotoCatalog[contributor.name]
               return (
                 <article className={`top-donor-card ${index === 0 ? 'featured' : ''}`} key={contributor.name}>
                   <div className="top-donor-rank">
@@ -421,14 +419,7 @@ function App() {
           </div>
           <div className="member-grid">
             {filteredMembers.map((member) => {
-              const photo = memberPhotos[member.name]
-                ? {
-                    src: memberPhotos[member.name],
-                    alt: `${member.name} profile`,
-                    position: '50% 50%',
-                    zoom: 1,
-                  }
-                : memberPhotoCatalog[member.name]
+              const photo = memberPhotoCatalog[member.name]
 
               return (
                 <article className="member-card" key={member.name}>
@@ -444,15 +435,6 @@ function App() {
                       <span className="member-photo-fallback">{initials(member.name)}</span>
                     )}
                   </div>
-                  <label className="photo-upload">
-                    {photo ? 'Change photo' : 'Add photo'}
-                    <input
-                      type="file"
-                      accept="image/*"
-                      aria-label={`Upload ${member.name}'s photo`}
-                      onChange={(event) => addMemberPhoto(member.name, event)}
-                    />
-                  </label>
                 </div>
                 <div className="member-details">
                   <div className="member-name-row">
@@ -473,7 +455,7 @@ function App() {
           </div>
           <div className="collection-total">
             <span>Total collected this week</span>
-            <strong>{money(filteredMembers.reduce((sum, member) => sum + (member.paid ? member.amount : 0), 0))}</strong>
+            <strong>{money(currentWeekCollected)}</strong>
           </div>
         </section>
       )}
@@ -488,12 +470,11 @@ function App() {
                   <th>Member</th>
                   <th>Amount collected</th>
                   <th>Collected by</th>
-                  <th>Method</th>
                   <th>Notes</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredCollections.map((c, i) => (
+                {sortedCollections.map((c, i) => (
                   <tr key={`${c.member}-${i}`}>
                     <td>{prettyDate(c.date)}</td>
                     <td className="name-cell">
@@ -502,9 +483,8 @@ function App() {
                     </td>
                     <td>{money(c.amount)}</td>
                     <td>
-                      <span className="manager-mini">{c.by}</span>
+                      <span className="manager-mini">{c.by || '—'}</span>
                     </td>
-                    <td>{c.method || '—'}</td>
                     <td>{c.notes || '—'}</td>
                   </tr>
                 ))}
@@ -513,7 +493,7 @@ function App() {
                 <tr>
                   <td colSpan={2}>Logged total</td>
                   <td>{money(filteredCollections.reduce((s, c) => s + c.amount, 0))}</td>
-                  <td colSpan={3} />
+                  <td colSpan={2} />
                 </tr>
               </tfoot>
             </table>
@@ -607,6 +587,77 @@ function App() {
         </section>
       )}
 
+      {tab === 'hcr' && (
+        <section className="panel">
+          <div className="kpis compact">
+            <Kpi label="HCR collected" value={`${hcrAmount(currentHcrTotal)} HCR`} hint="Selected week" accent />
+            <Kpi
+              label="Estimated value"
+              value={moneyExact(currentHcrValue)}
+              hint={`${currentHcrPricedCount} of ${currentHcrCollections.length} entries priced in USD`}
+            />
+            <Kpi label="Race entries" value={String(currentHcrCollections.length)} hint="Separate from the fund balance" />
+          </div>
+          <div className="filters">
+            <label className="count" htmlFor="hcr-week">Week starting</label>
+            <select
+              id="hcr-week"
+              value={hcrWeek}
+              onChange={(event) => setHcrWeek(event.target.value)}
+            >
+              {[...new Set([activeCollectionDate, ...hcrCollections.map((collection) => collection.week)])]
+                .sort((a, b) => b.localeCompare(a))
+                .map((week) => (
+                  <option key={week} value={week}>{prettyDate(week)}</option>
+                ))}
+            </select>
+            <span className="count">HCR data is maintained in src/hcrCollections.json</span>
+          </div>
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Race</th>
+                  <th>Collected by</th>
+                  <th>HCR collected</th>
+                  <th>Value per HCR</th>
+                  <th>Estimated value</th>
+                </tr>
+              </thead>
+              <tbody>
+                {currentHcrCollections.length ? currentHcrCollections.map((collection, index) => (
+                  <tr key={`${collection.week}-${collection.id || index}`}>
+                    <td>{collection.race || '—'}</td>
+                    <td>{collection.collector || '—'}</td>
+                    <td className="strong">{hcrAmount(collection.amount)} HCR</td>
+                    <td>
+                      {Number.isFinite(collection.unitValue) ? moneyExact(collection.unitValue) : '—'}
+                    </td>
+                    <td>
+                      {!Number.isFinite(collection.unitValue)
+                        ? '—'
+                        : moneyExact(collection.amount * collection.unitValue)}
+                    </td>
+                  </tr>
+                )) : (
+                  <tr>
+                    <td colSpan={5}>No HCR collections recorded for this week yet.</td>
+                  </tr>
+                )}
+              </tbody>
+              <tfoot>
+                <tr>
+                  <td colSpan={2}>Weekly total</td>
+                  <td>{hcrAmount(currentHcrTotal)} HCR</td>
+                  <td />
+                  <td>{currentHcrPricedCount ? moneyExact(currentHcrValue) : '—'}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </section>
+      )}
+
       {tab === 'withdrawals' && (
         <section className="panel">
           <div className="kpis compact">
@@ -622,7 +673,6 @@ function App() {
                   <th>Description / reason</th>
                   <th>Amount withdrawn</th>
                   <th>Withdrawn by</th>
-                  <th>Payment method</th>
                   <th>Notes</th>
                 </tr>
               </thead>
@@ -633,7 +683,6 @@ function App() {
                     <td>{w.reason}</td>
                     <td className="strong rose-text">{money(w.amount)}</td>
                     <td>{w.by || '—'}</td>
-                    <td>{w.method || '—'}</td>
                     <td>{w.notes || '—'}</td>
                   </tr>
                 ))}

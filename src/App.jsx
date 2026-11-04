@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import {
   activeCollectionDate,
   activeCollectionWeekLabel,
@@ -37,8 +37,6 @@ const prettyDate = (iso) =>
     year: 'numeric',
   })
 
-const today = new Date().toISOString().slice(0, 10)
-
 const initials = (name) =>
   name
     .split(' ')
@@ -52,7 +50,7 @@ function App() {
   const [tab, setTab] = useState('overview')
   const [query, setQuery] = useState('')
   const [day, setDay] = useState('All')
-  const [donations, setDonations] = useState(() => {
+  const [donations] = useState(() => {
     try {
       const saved = localStorage.getItem('grove-fund-donations')
       return saved ? JSON.parse(saved) : initialDonations
@@ -61,20 +59,6 @@ function App() {
     }
   })
   const [hcrWeek, setHcrWeek] = useState(activeCollectionDate)
-  const [donationForm, setDonationForm] = useState({
-    donor: '',
-    amount: '',
-    date: today,
-    purpose: 'General fund',
-  })
-
-  useEffect(() => {
-    try {
-      localStorage.setItem('grove-fund-donations', JSON.stringify(donations))
-    } catch {
-      // Keep the current session usable if browser storage is unavailable.
-    }
-  }, [donations])
 
   const totals = useMemo(() => {
     const totalMembers = members.length
@@ -185,24 +169,6 @@ function App() {
     () => [...filteredDonations].sort((a, b) => b.amount - a.amount || b.date.localeCompare(a.date)),
     [filteredDonations],
   )
-
-  const addDonation = (event) => {
-    event.preventDefault()
-    const amount = Number(donationForm.amount)
-    if (!donationForm.donor.trim() || !Number.isFinite(amount) || amount <= 0) return
-
-    setDonations((current) => [
-      {
-        id: `${Date.now()}`,
-        donor: donationForm.donor.trim(),
-        amount,
-        date: donationForm.date,
-        purpose: donationForm.purpose,
-      },
-      ...current,
-    ])
-    setDonationForm((current) => ({ ...current, donor: '', amount: '' }))
-  }
 
   const collectorMax = Math.max(...Object.values(totals.byCollector), 1)
   const currentWeekCollected = collections
@@ -420,6 +386,9 @@ function App() {
           <div className="member-grid">
             {filteredMembers.map((member) => {
               const photo = memberPhotoCatalog[member.name]
+              const totalContributed = collections
+                .filter((collection) => collection.member === member.name)
+                .reduce((sum, collection) => sum + collection.amount, 0)
 
               return (
                 <article className="member-card" key={member.name}>
@@ -444,6 +413,10 @@ function App() {
                     </span>
                   </div>
                   <span className={`pill ${member.day.toLowerCase()}`}>{member.day}</span>
+                  <div className="member-contribution">
+                    <span>Total contributed</span>
+                    <strong>{money(totalContributed)}</strong>
+                  </div>
                   <div className="member-contribution">
                     <span>Weekly contribution</span>
                     <strong>{money(member.weeklyRate)}</strong>
@@ -508,50 +481,6 @@ function App() {
             <Kpi label="Total donations" value={money(totals.totalDonations)} hint="Included in the fund balance" accent />
             <Kpi label="Available cash" value={money(totals.available)} hint="After returns and withdrawals" />
           </div>
-          <form className="donation-form" onSubmit={addDonation}>
-            <label>
-              Donor
-              <input
-                required
-                value={donationForm.donor}
-                onChange={(event) => setDonationForm({ ...donationForm, donor: event.target.value })}
-                placeholder="Person's name"
-              />
-            </label>
-            <label>
-              Amount
-              <input
-                required
-                min="1"
-                step="1"
-                type="number"
-                value={donationForm.amount}
-                onChange={(event) => setDonationForm({ ...donationForm, amount: event.target.value })}
-                placeholder="100000"
-              />
-            </label>
-            <label>
-              Date
-              <input
-                required
-                type="date"
-                value={donationForm.date}
-                onChange={(event) => setDonationForm({ ...donationForm, date: event.target.value })}
-              />
-            </label>
-            <label>
-              Purpose
-              <select
-                value={donationForm.purpose}
-                onChange={(event) => setDonationForm({ ...donationForm, purpose: event.target.value })}
-              >
-                <option>General fund</option>
-                <option>Gang support</option>
-                <option>Other</option>
-              </select>
-            </label>
-            <button type="submit">Add donation</button>
-          </form>
           <div className="table-wrap">
             <table>
               <thead>
@@ -596,7 +525,6 @@ function App() {
               value={moneyExact(currentHcrValue)}
               hint={`${currentHcrPricedCount} of ${currentHcrCollections.length} entries priced in USD`}
             />
-            <Kpi label="Race entries" value={String(currentHcrCollections.length)} hint="Separate from the fund balance" />
           </div>
           <div className="filters">
             <label className="count" htmlFor="hcr-week">Week starting</label>

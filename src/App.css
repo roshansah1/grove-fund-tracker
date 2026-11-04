@@ -577,53 +577,6 @@ h1 {
   background: rgba(75, 43, 99, 0.2);
 }
 
-.donation-form {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr)) auto;
-  gap: 12px;
-  align-items: end;
-  margin-bottom: 14px;
-  padding: 18px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 14px;
-  background: rgba(10, 28, 20, 0.78);
-}
-
-.donation-form label {
-  display: grid;
-  gap: 6px;
-  color: #9fb3a4;
-  font-size: 12px;
-}
-
-.donation-form input,
-.donation-form select {
-  width: 100%;
-  min-width: 0;
-  padding: 10px 12px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 10px;
-  background: rgba(8, 22, 16, 0.85);
-  color: #f4efe4;
-  font: inherit;
-}
-
-.donation-form button {
-  min-height: 42px;
-  padding: 0 16px;
-  border: 0;
-  border-radius: 10px;
-  background: linear-gradient(180deg, #f3d48a, #c9a227);
-  color: #1a1204;
-  font: inherit;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.donation-form button:hover {
-  filter: brightness(1.08);
-}
-
 .count {
   color: #9fb3a4;
   font-size: 13px;
@@ -709,10 +662,6 @@ footer {
     grid-template-columns: 1fr 1fr;
   }
 
-  .donation-form {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
 }
 
 @media (max-width: 720px) {
@@ -739,11 +688,6 @@ footer {
   .search-wrap input {
     width: 100%;
     min-width: 0;
-  }
-
-  .donation-form {
-    grid-template-columns: 1fr;
-    padding: 14px;
   }
 
 }

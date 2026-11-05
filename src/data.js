@@ -55,6 +55,8 @@ export const collections = [
   { date: '2026-10-26', member: 'Sivam', amount: 25000, by: 'Steven', notes: 'Week 1' },
   { date: '2026-10-26', member: 'MARSHAL', amount: 25000, by: 'Steven', notes: 'Week 1' },
   { date: '2026-11-02', member: 'Ace', amount: 25000, by: 'Steven', notes: 'Week 2' },
+  { date: '2026-11-02', member: 'Babulal', amount: 25000, by: '', notes: 'Week 2' },
+  { date: '2026-11-02', member: 'Jenna', amount: 25000, by: '', notes: 'Week 2' },
   { date: '2026-11-02', member: 'Seenu Rajput', amount: 25000, by: 'Steven', notes: 'Week 2' },
   { date: '2026-11-02', member: 'Steven Burgershot', amount: 50000, by: 'Steven', notes: 'Week 2' },
   { date: '2026-11-02', member: 'Babban Sharma', amount: 25000, by: 'Steven', notes: 'Week 2' },
@@ -71,6 +73,7 @@ export const members = rawMembers.map((m) => ({
 }))
 
 export const withdrawals = [
-  { date: '2026-10-30', reason: 'Keys and other expenses', amount: 300000, by: '', notes: '' },
-  { date: '2026-10-30', reason: 'Rent', amount: 4000, by: '', notes: '' },
+  { date: '2026-10-30', reason: 'Keys and other expenses', amount: 300000, by: 'Lance', notes: 'weapon keys' },
+  { date: '2026-10-30', reason: 'Rent', amount: 4000, by: 'Lance', notes: '' },
+  { date: '2026-11-05', reason: 'Rent', amount: 4000, by: 'Lance', notes: '' },
 ]

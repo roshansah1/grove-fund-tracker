@@ -38,5 +38,21 @@
     "collector": "Paul",
     "amount": 15,
     "unitValue": 500
+  },
+  {
+    "id": "2026-11-02-vihaan-varun",
+    "week": "2026-11-02",
+    "race": "Vihaan",
+    "collector": "Varun Chaudhary",
+    "amount": 86,
+    "unitValue": 500
+  },
+  {
+    "id": "2026-11-02-jenna",
+    "week": "2026-11-02",
+    "race": "Jenna",
+    "collector": "",
+    "amount": 50,
+    "unitValue": 500
   }
 ]

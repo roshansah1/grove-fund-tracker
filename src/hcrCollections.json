@@ -8,6 +8,14 @@
     "unitValue": 500
   },
   {
+    "id": "2026-11-06-max-carter-varun-extra",
+    "week": "2026-11-02",
+    "race": "MAXX CARTER",
+    "collector": "Varun Chaudhary",
+    "amount": 15,
+    "unitValue": 500
+  },
+  {
     "id": "2026-11-02-seenu-rajput-varun",
     "week": "2026-11-02",
     "race": "Seenu Rajput",
@@ -32,6 +40,14 @@
     "unitValue": 500
   },
   {
+    "id": "2026-11-06-jagga-singh-varun-extra",
+    "week": "2026-11-02",
+    "race": "Jagga Singh",
+    "collector": "Varun Chaudhary",
+    "amount": 30,
+    "unitValue": 500
+  },
+  {
     "id": "2026-11-02-jagga-singh-paul",
     "week": "2026-11-02",
     "race": "Jagga Singh",
@@ -45,6 +61,14 @@
     "race": "Vihaan",
     "collector": "Varun Chaudhary",
     "amount": 86,
+    "unitValue": 500
+  },
+  {
+    "id": "2026-11-02-steven-burgershot-varun",
+    "week": "2026-11-02",
+    "race": "Steven Burgershot",
+    "collector": "Varun Chaudhary",
+    "amount": 100,
     "unitValue": 500
   },
   {

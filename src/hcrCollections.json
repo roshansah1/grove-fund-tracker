@@ -54,5 +54,13 @@
     "collector": "",
     "amount": 50,
     "unitValue": 500
+  },
+  {
+    "id": "2026-11-02-sivam",
+    "week": "2026-11-02",
+    "race": "Sivam",
+    "collector": "",
+    "amount": 120,
+    "unitValue": 500
   }
 ]

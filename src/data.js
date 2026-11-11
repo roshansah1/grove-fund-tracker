@@ -29,8 +29,8 @@ export const managers = [
   { name: 'Steven', role: 'Fund manager' },
 ]
 
-export const activeCollectionDate = '2026-11-02'
-export const activeCollectionWeekLabel = 'Week of Nov 2, 2026'
+export const activeCollectionDate = '2026-11-09'
+export const activeCollectionWeekLabel = 'Week of Nov 9, 2026'
 
 export const initialDonations = [
   { id: 'lance-initial', date: '2026-10-26', donor: 'Lance', amount: 95000, purpose: 'General fund' },
@@ -62,6 +62,9 @@ export const collections = [
   { date: '2026-11-02', member: 'Babban Sharma', amount: 25000, by: 'Steven', notes: 'Week 2' },
   { date: '2026-11-02', member: 'Shera Rajput', amount: 25000, by: 'Lance', notes: 'Week 2' },
   { date: '2026-11-05', member: 'Sivam', amount: 25000, by: '', notes: 'Week 2' },
+  { date: '2026-11-09', member: 'Steven Burgershot', amount: 50000, by: '', notes: 'Week 3' },
+  { date: '2026-11-09', member: 'Shaun', amount: 25000, by: '', notes: 'Week 3' },
+  { date: '2026-11-09', member: 'Babulal', amount: 25000, by: '', notes: 'Week 3' },
 ]
 
 export const members = rawMembers.map((m) => ({

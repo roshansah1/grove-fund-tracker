@@ -453,7 +453,7 @@ function App() {
                 <Bar label="Available cash" value={totals.available} max={totals.totalFund} tone="mint" />
               </div>
               <p className="note">
-                Cycle started Oct 26, 2026. Week 2 collections are in progress. No amounts have been returned yet.
+                Cycle started Oct 26, 2026. Week 3 collections are in progress. No amounts have been returned yet.
               </p>
             </article>
 

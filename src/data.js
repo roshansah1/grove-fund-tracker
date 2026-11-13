@@ -22,6 +22,7 @@ const rawMembers = [
   { name: 'Marcus', amount: 25000, day: 'Tuesday', weeks: 1, start: '2026-10-26', paid: true, returned: 0, notes: '' },
   { name: 'Sivam', amount: 25000, day: 'Tuesday', weeks: 1, start: '2026-10-26', paid: true, returned: 0, notes: '' },
   { name: 'MARSHAL', amount: 25000, day: 'Tuesday', weeks: 1, start: '2026-10-26', paid: true, returned: 0, notes: '' },
+  { name: 'Pasha Desuza', amount: 75000, day: 'Monday', weeks: 3, start: '2026-10-26', paid: true, returned: 0, notes: '' },
 ]
 
 export const managers = [
@@ -65,6 +66,21 @@ export const collections = [
   { date: '2026-11-09', member: 'Steven Burgershot', amount: 50000, by: '', notes: 'Week 3' },
   { date: '2026-11-09', member: 'Shaun', amount: 25000, by: '', notes: 'Week 3' },
   { date: '2026-11-09', member: 'Babulal', amount: 25000, by: '', notes: 'Week 3' },
+  {
+    date: '2026-11-12',
+    member: 'Pasha Desuza',
+    amount: 75000,
+    by: '',
+    notes: 'Weeks 1-3',
+    weeklyAllocations: [
+      { week: '2026-10-26', amount: 25000 },
+      { week: '2026-11-02', amount: 25000 },
+      { week: '2026-11-09', amount: 25000 },
+    ],
+  },
+  { date: '2026-11-12', member: 'Ace', amount: 25000, by: '', notes: 'Week 3' },
+  { date: '2026-11-12', member: 'Babban Sharma', amount: 25000, by: '', notes: 'Week 3' },
+  { date: '2026-11-12', member: 'Jenna', amount: 50000, by: '', notes: 'Week 3' },
 ]
 
 export const members = rawMembers.map((m) => ({

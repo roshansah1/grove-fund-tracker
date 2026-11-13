@@ -83,9 +83,16 @@ const getWeeklyMemberPayments = (week, donations = []) => {
   )
 
   collections.forEach((collection) => {
-    if (getWeekStart(collection.date) !== week) return
     const payment = payments.get(collection.member.toLowerCase())
-    if (payment) payment.cash += collection.amount
+    if (!payment || collection.weeklyEligible === false) return
+    if (collection.weeklyAllocations) {
+      const allocation = collection.weeklyAllocations.find(
+        (entry) => getWeekStart(entry.week) === week,
+      )
+      if (allocation) payment.cash += allocation.amount
+      return
+    }
+    if (getWeekStart(collection.date) === week) payment.cash += collection.amount
   })
 
   hcrCollections.forEach((collection) => {
@@ -131,11 +138,16 @@ function App() {
       return initialDonations
     }
   })
-  const [hcrWeek, setHcrWeek] = useState(activeCollectionDate)
   const [memberWeek, setMemberWeek] = useState(activeCollectionDate)
   const memberWeeks = useMemo(
     () => [...new Set([
-      ...collections.map((collection) => getWeekStart(collection.date)),
+      ...collections
+        .filter((collection) => collection.weeklyEligible !== false)
+        .flatMap((collection) =>
+          collection.weeklyAllocations
+            ? collection.weeklyAllocations.map((allocation) => getWeekStart(allocation.week))
+            : [getWeekStart(collection.date)],
+        ),
       ...hcrCollections.map((collection) => getWeekStart(collection.week)),
       ...donations.map((donation) => getWeekStart(donation.date)),
       getWeekStart(activeCollectionDate),
@@ -317,15 +329,14 @@ function App() {
   )
 
   const collectorMax = Math.max(...Object.values(totals.byCollector), 1)
-  const currentHcrCollections = hcrCollections.filter(
+  const filteredHcrCollections = hcrCollections.filter(
     (collection) =>
-      collection.week === hcrWeek &&
       (!query.trim() ||
         (collection.race || '').toLowerCase().includes(query.trim().toLowerCase()) ||
         (collection.collector || '').toLowerCase().includes(query.trim().toLowerCase())),
   )
-  const currentHcrTotal = currentHcrCollections.reduce((sum, collection) => sum + collection.amount, 0)
-  const currentHcrValue = currentHcrCollections.reduce(
+  const totalHcr = filteredHcrCollections.reduce((sum, collection) => sum + collection.amount, 0)
+  const totalHcrValue = filteredHcrCollections.reduce(
     (sum, collection) =>
       sum +
       (Number.isFinite(collection.unitValue)
@@ -333,16 +344,15 @@ function App() {
         : 0),
     0,
   )
-  const currentHcrPricedCount = currentHcrCollections.filter(
+  const pricedHcrCount = filteredHcrCollections.filter(
     (collection) => Number.isFinite(collection.unitValue),
   ).length
-  const currentHcrDuesCredit = currentHcrCollections.reduce(
+  const totalHcrDuesCredit = filteredHcrCollections.reduce(
     (sum, collection) => sum + getHcrDuesCredit(collection),
     0,
   )
-  const hcrWeekPayments = getWeeklyMemberPayments(hcrWeek)
   const hcrCardsByRace = new Map()
-  currentHcrCollections.forEach((collection) => {
+  filteredHcrCollections.forEach((collection) => {
     const race = collection.race?.trim() || 'Unknown'
     const key = race.toLowerCase()
     const member = findHcrMember(collection)
@@ -722,33 +732,19 @@ function App() {
       {tab === 'hcr' && (
         <section className="panel">
           <div className="kpis compact">
-            <Kpi label="HCR collected" value={`${hcrAmount(currentHcrTotal)} HCR`} hint="Selected week" accent />
+            <Kpi label="HCR collected" value={`${hcrAmount(totalHcr)} HCR`} hint="All recorded collections" accent />
             <Kpi
               label="Estimated value"
-              value={moneyExact(currentHcrValue)}
-              hint={`${currentHcrPricedCount} of ${currentHcrCollections.length} entries priced in USD`}
+              value={moneyExact(totalHcrValue)}
+              hint={`${pricedHcrCount} of ${filteredHcrCollections.length} entries priced in USD`}
             />
           </div>
-          <div className="filters">
-            <label className="count" htmlFor="hcr-week">Week starting</label>
-            <select
-              id="hcr-week"
-              value={hcrWeek}
-              onChange={(event) => setHcrWeek(event.target.value)}
-            >
-              {[...new Set([activeCollectionDate, ...hcrCollections.map((collection) => collection.week)])]
-                .sort((a, b) => b.localeCompare(a))
-                .map((week) => (
-                  <option key={week} value={week}>{prettyDate(week)}</option>
-                ))}
-            </select>
-            <span className="count">HCR data is maintained in src/hcrCollections.json</span>
-          </div>
+          <p className="note">Showing all HCR collection records. Data is maintained in src/hcrCollections.json.</p>
           <div className="member-grid hcr-member-grid">
             {hcrMemberCards.map((card) => {
               const photo = card.member && memberPhotoCatalog[card.member.name]
               const payment = card.member
-                ? hcrWeekPayments.get(card.member.name.toLowerCase())
+                ? currentWeekPayments.get(card.member.name.toLowerCase())
                 : undefined
               const paid = payment && payment.cash + payment.hcrValue >= card.member.weeklyRate
 
@@ -775,7 +771,7 @@ function App() {
                       </span>
                     </div>
                     <div className="member-contribution">
-                      <span>HCR this week</span>
+                      <span>HCR collected</span>
                       <strong>{hcrAmount(card.amount)} HCR</strong>
                     </div>
                     <div className="member-contribution">
@@ -803,6 +799,7 @@ function App() {
             <table>
               <thead>
                 <tr>
+                  <th>Week</th>
                   <th>Race</th>
                   <th>Collected by</th>
                   <th>HCR collected</th>
@@ -812,8 +809,9 @@ function App() {
                 </tr>
               </thead>
               <tbody>
-                {currentHcrCollections.length ? currentHcrCollections.map((collection, index) => (
+                {filteredHcrCollections.length ? filteredHcrCollections.map((collection, index) => (
                   <tr key={`${collection.week}-${collection.id || index}`}>
+                    <td>{prettyDate(collection.week)}</td>
                     <td>{collection.race || '—'}</td>
                     <td>{collection.collector || '—'}</td>
                     <td className="strong">{hcrAmount(collection.amount)} HCR</td>
@@ -837,17 +835,17 @@ function App() {
                   </tr>
                 )) : (
                   <tr>
-                    <td colSpan={6}>No HCR collections recorded for this week yet.</td>
+                    <td colSpan={7}>No HCR collections found.</td>
                   </tr>
                 )}
               </tbody>
               <tfoot>
                 <tr>
-                  <td colSpan={2}>Weekly total</td>
-                  <td>{hcrAmount(currentHcrTotal)} HCR</td>
+                  <td colSpan={3}>All-time total</td>
+                  <td>{hcrAmount(totalHcr)} HCR</td>
                   <td />
-                  <td>{currentHcrPricedCount ? moneyExact(currentHcrValue) : '—'}</td>
-                  <td>{moneyExact(currentHcrDuesCredit)}</td>
+                  <td>{pricedHcrCount ? moneyExact(totalHcrValue) : '—'}</td>
+                  <td>{moneyExact(totalHcrDuesCredit)}</td>
                 </tr>
               </tfoot>
             </table>
